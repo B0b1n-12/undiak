@@ -1,26 +1,45 @@
-#!/bin/bash
+import subprocess
+import os
 
-# Název souboru
-SOURCE="main.cpp"
-OUTPUT="convert"
+# Cesta k tvému skriptu - uprav podle potřeby
+bash_script_path = r"C:/Users/orsia/OneDrive/Documents/Programing/C++/Convert_to_cj/run.sh"
 
-# Oprava Windows konců řádků, pokud existují
-if command -v dos2unix &> /dev/null; then
-  dos2unix "$SOURCE" 2>/dev/null
-else
-  echo "⚠️  dos2unix není nainstalovaný. Doporučuji nainstalovat: sudo apt install dos2unix"
-fi
+def run_with_wsl(script_path):
+    # Převod Windows cesty na Linuxovou pro WSL
+    wsl_path = "/mnt/" + script_path[0].lower() + script_path[2:].replace("\\", "/").replace("C:", "").replace("c:", "")
+    wsl_path = wsl_path.replace(":", "")
+    try:
+        subprocess.run(["wsl", "bash", wsl_path], check=True)
+        return True
+    except FileNotFoundError:
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"Chyba při spouštění skriptu ve WSL: {e}")
+        return True
 
-# Překlad pomocí g++
-echo "🔧 Překlad souboru $SOURCE..."
-g++ -std=c++17 -o "$OUTPUT" "$SOURCE"
+def run_with_git_bash(script_path):
+    # Zkus spustit přes Git Bash - uprav cestu podle instalace Git Bashu
+    git_bash_path = r"C:\Program Files\Git\bin\bash.exe"
+    if not os.path.exists(git_bash_path):
+        print("Git Bash nebyl nalezen na předpokládané cestě.")
+        return False
+    try:
+        subprocess.run([git_bash_path, script_path], check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Chyba při spouštění skriptu v Git Bash: {e}")
+        return True
 
-# Kontrola, jestli kompilace proběhla úspěšně
-if [ $? -eq 0 ]; then
-  echo "✅ Překlad hotov. Spouštím program:"
-  echo "-------------------------"
-  ./"$OUTPUT"
-else
-  echo "❌ Chyba při překladu!"
-fi
+def main():
+    print("Zkouším spustit skript přes WSL...")
+    if run_with_wsl(bash_script_path):
+        print("Skript byl spuštěn ve WSL.")
+        return
+    print("WSL není dostupný, zkouším Git Bash...")
+    if run_with_git_bash(bash_script_path):
+        print("Skript byl spuštěn v Git Bash.")
+        return
+    print("Nepodařilo se spustit Bash skript. Nainstaluj WSL nebo Git Bash.")
 
+if __name__ == "__main__":
+    main()
